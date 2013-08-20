@@ -9,7 +9,7 @@ type Puzzle struct {
 	candidates [9][9]uint16
 }
 
-func (puzzle Puzzle) InitFromFile(filename string) {
+func (puzzle *Puzzle) InitFromFile(filename string) {
 	input_file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -32,7 +32,7 @@ func (puzzle Puzzle) InitFromFile(filename string) {
 	}
 }
 
-func (puzzle Puzzle) Print() {
+func (puzzle *Puzzle) Print() {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] == 0 {
