@@ -2,6 +2,7 @@ package main
 
 import "os"
 import "fmt"
+import "strconv"
 
 type Puzzle struct {
 	grid [9][9]uint8
@@ -23,26 +24,10 @@ func (puzzle Puzzle) InitFromFile(filename string) {
 		}
 		for y := 0; y < 9; y++ {
 			puzzle.candidates[x][y] = 0
-			if buf[y] == '1' {
-				puzzle.grid[x][y] = 1
-			} else if buf[y] == '2' {
-				puzzle.grid[x][y] = 2
-			} else if buf[y] == '3' {
-				puzzle.grid[x][y] = 3
-			} else if buf[y] == '4' {
-				puzzle.grid[x][y] = 4
-			} else if buf[y] == '5' {
-				puzzle.grid[x][y] = 5
-			} else if buf[y] == '6' {
-				puzzle.grid[x][y] = 6
-			} else if buf[y] == '7' {
-				puzzle.grid[x][y] = 7
-			} else if buf[y] == '8' {
-				puzzle.grid[x][y] = 8
-			} else if buf[y] == '9' {
-				puzzle.grid[x][y] = 9
+			if buf[y] != '_' {
+				n, _ := strconv.ParseUint(string(buf[y]), 10, 8)
+				puzzle.grid[x][y] = uint8(n)
 			}
-			// value is 0(default) if buf[y] == '_'
 		}
 	}
 }
