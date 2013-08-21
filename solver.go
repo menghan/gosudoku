@@ -67,21 +67,10 @@ func (puzzle *Puzzle) GetSlot() (int, int) {
 }
 
 func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
-	var bit uint = 0
-	for xx := 0; xx < 9; xx++ {
-		bit |= 1 << puzzle.grid[xx][y]
+	if puzzle.candidates[x][y] == 0 {
+		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 	}
-	for yy := 0; yy < 9; yy++ {
-		bit |= 1 << puzzle.grid[x][yy]
-	}
-	var x_base int = x / 3 * 3
-	var y_base int = y / 3 * 3
-	for xx := x_base; xx < x_base+3; xx++ {
-		for yy := y_base; yy < y_base+3; yy++ {
-			bit |= 1 << puzzle.grid[xx][yy]
-		}
-	}
-	bit &= 0x3FE
+	bit := puzzle.candidates[x][y]
 	candidates := []uint8{}
 	var i uint8 = 1
 	for ; i < 10; i++ {
@@ -92,8 +81,8 @@ func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	return candidates
 }
 
-func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
-	var bit uint = 0
+func (puzzle *Puzzle) CalculateCandidates(x, y int) uint16 {
+	var bit uint16 = 0
 	for xx := 0; xx < 9; xx++ {
 		bit |= 1 << puzzle.grid[xx][y]
 	}
@@ -108,6 +97,14 @@ func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
 		}
 	}
 	bit &= 0x3FE
+	return bit
+}
+
+func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
+	if puzzle.candidates[x][y] == 0 {
+		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
+	}
+	bit := puzzle.candidates[x][y]
 	var count uint = 0
 	var i uint = 1
 	for ; i < 10; i++ {
@@ -120,6 +117,19 @@ func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
 	puzzle.grid[x][y] = value
+	for xx := 0; xx < 9; xx++ {
+		puzzle.candidates[xx][y] = 0
+	}
+	for yy := 0; yy < 9; yy++ {
+		puzzle.candidates[x][yy] = 0
+	}
+	var x_base int = x / 3 * 3
+	var y_base int = y / 3 * 3
+	for xx := x_base; xx < x_base+3; xx++ {
+		for yy := y_base; yy < y_base+3; yy++ {
+			puzzle.candidates[xx][yy] = 0
+		}
+	}
 }
 
 func (puzzle *Puzzle) Slotcount() uint {
