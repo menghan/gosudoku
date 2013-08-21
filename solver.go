@@ -48,6 +48,88 @@ func (puzzle *Puzzle) Print() {
 	}
 }
 
+func (puzzle *Puzzle) GetSlot() (int, int) {
+	var rx, ry int
+	var min_cdd uint = 10  // 9 is the largest candidates count
+	for x := 0; x < 9; x++ {
+		for y := 0; y < 9; y++ {
+			if puzzle.grid[x][y] != 0 {
+				continue
+			}
+			cdd := puzzle.GetCandidateCount(x, y)
+			if cdd < min_cdd {
+				rx, ry = x, y
+				min_cdd = cdd
+			}
+		}
+	}
+	return rx, ry
+}
+
+func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
+	var bit uint = 0
+	for xx := 0; xx < 9; xx++ {
+		bit |= 1 << puzzle.grid[xx][y]
+	}
+	for yy := 0; yy < 9; yy++ {
+		bit |= 1 << puzzle.grid[x][yy]
+	}
+	for xx := x / 3 * 3; xx < x / 3 * 3 + 3; xx++ {
+		for yy := y / 3 * 3; yy < y / 3 * 3 + 3; yy++ {
+			bit |= 1 << puzzle.grid[xx][yy]
+		}
+	}
+	bit &= 0x3FE
+	candidates := []uint8{}
+	var i uint8 = 1
+	for ; i < 10; i++ {
+		if ((bit & (1 << i)) == 0) {
+			candidates = append(candidates, i)
+		}
+	}
+	return candidates
+}
+
+func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
+	var bit uint = 0
+	for xx := 0; xx < 9; xx++ {
+		bit |= 1 << puzzle.grid[xx][y]
+	}
+	for yy := 0; yy < 9; yy++ {
+		bit |= 1 << puzzle.grid[x][yy]
+	}
+	for xx := x / 3 * 3; xx < x / 3 * 3 + 3; xx++ {
+		for yy := y / 3 * 3; yy < y / 3 * 3 + 3; yy++ {
+			bit |= 1 << puzzle.grid[xx][yy]
+		}
+	}
+	bit &= 0x3FE
+	var count uint = 0
+	var i uint = 1
+	for ; i < 10; i++ {
+		if ((bit & (1 << i)) == 0) {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (puzzle *Puzzle) Set(x, y int, value uint8) {
+	puzzle.grid[x][y] = value
+}
+
+func (puzzle *Puzzle) Slotcount() uint {
+	var r uint = 0
+	for x := 0; x < 9; x++ {
+		for y := 0; y < 9; y++ {
+			if puzzle.grid[x][y] == 0 {
+				r += 1
+			}
+		}
+	}
+	return r
+}
+
 type Stack struct {
 	count uint
 	nodes list.List
@@ -73,8 +155,21 @@ func resolve(puzzle Puzzle) Puzzle {
 	var stack Stack
 	stack.Init()
 	stack.Push(puzzle)
-	result := stack.Pop().(Puzzle)
-	return result
+	for stack.count != 0 {
+		var current Puzzle = stack.Pop().(Puzzle)
+		x, y := current.GetSlot()
+		candidates := current.GetCandidates(x, y)
+		for _, c := range candidates {
+			next := Puzzle(current)
+			next.Set(x, y, c)
+			if next.Slotcount() == 0 {
+				return next
+			} else {
+				stack.Push(next)
+			}
+		}
+	}
+	return puzzle
 }
 
 func main() {
