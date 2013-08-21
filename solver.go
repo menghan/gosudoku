@@ -57,12 +57,12 @@ func (stack *Stack) Init() {
 	stack.nodes.Init()
 }
 
-func (stack *Stack) Push(item Puzzle) {
+func (stack *Stack) Push(item interface{}) {
 	stack.nodes.PushBack(item)
 	stack.count++
 }
 
-func (stack *Stack) Pop() Puzzle {
+func (stack *Stack) Pop() interface{} {
 	stack.count--
 	poped := stack.nodes.Back()
 	value := stack.nodes.Remove(poped)
@@ -73,7 +73,7 @@ func resolve(puzzle Puzzle) Puzzle {
 	var stack Stack
 	stack.Init()
 	stack.Push(puzzle)
-	result := stack.Pop()
+	result := stack.Pop().(Puzzle)
 	return result
 }
 
