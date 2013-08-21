@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"strconv"
 	list "container/list"
+	"fmt"
+	"os"
+	"strconv"
 )
 
 type Puzzle struct {
@@ -50,7 +50,7 @@ func (puzzle *Puzzle) Print() {
 
 func (puzzle *Puzzle) GetSlot() (int, int) {
 	var rx, ry int
-	var min_cdd uint = 10  // 9 is the largest candidates count
+	var min_cdd uint = 10 // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] != 0 {
@@ -74,8 +74,10 @@ func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	for yy := 0; yy < 9; yy++ {
 		bit |= 1 << puzzle.grid[x][yy]
 	}
-	for xx := x / 3 * 3; xx < x / 3 * 3 + 3; xx++ {
-		for yy := y / 3 * 3; yy < y / 3 * 3 + 3; yy++ {
+	var x_base int = x / 3 * 3
+	var y_base int = y / 3 * 3
+	for xx := x_base; xx < x_base+3; xx++ {
+		for yy := y_base; yy < y_base+3; yy++ {
 			bit |= 1 << puzzle.grid[xx][yy]
 		}
 	}
@@ -83,7 +85,7 @@ func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	candidates := []uint8{}
 	var i uint8 = 1
 	for ; i < 10; i++ {
-		if ((bit & (1 << i)) == 0) {
+		if (bit & (1 << i)) == 0 {
 			candidates = append(candidates, i)
 		}
 	}
@@ -98,8 +100,10 @@ func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
 	for yy := 0; yy < 9; yy++ {
 		bit |= 1 << puzzle.grid[x][yy]
 	}
-	for xx := x / 3 * 3; xx < x / 3 * 3 + 3; xx++ {
-		for yy := y / 3 * 3; yy < y / 3 * 3 + 3; yy++ {
+	var x_base int = x / 3 * 3
+	var y_base int = y / 3 * 3
+	for xx := x_base; xx < x_base+3; xx++ {
+		for yy := y_base; yy < y_base+3; yy++ {
 			bit |= 1 << puzzle.grid[xx][yy]
 		}
 	}
@@ -107,7 +111,7 @@ func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
 	var count uint = 0
 	var i uint = 1
 	for ; i < 10; i++ {
-		if ((bit & (1 << i)) == 0) {
+		if (bit & (1 << i)) == 0 {
 			count += 1
 		}
 	}
@@ -174,7 +178,7 @@ func resolve(puzzle Puzzle) Puzzle {
 
 func main() {
 	var puzzle Puzzle
-	puzzle.InitFromFile("puzzle1")
+	puzzle.InitFromFile("puzzle4")
 	puzzle.Print()
 	result := resolve(puzzle)
 	fmt.Println("result")
