@@ -12,6 +12,7 @@ type Puzzle struct {
 	candidates [9][9]uint16
 }
 
+// TODO: don't create then init, create directly from file, use factory method
 func (puzzle *Puzzle) InitFromFile(filename string) {
 	input_file, err := os.Open(filename)
 	if err != nil {
