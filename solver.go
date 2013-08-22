@@ -59,6 +59,9 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 			if cdd < min_cdd {
 				rx, ry = x, y
 				min_cdd = cdd
+				if min_cdd == 1 {
+					return
+				}
 			}
 		}
 	}
