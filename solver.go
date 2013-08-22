@@ -2,14 +2,17 @@ package main
 
 import (
 	list "container/list"
+	"flag"
 	"fmt"
 	"os"
+	pprof "runtime/pprof"
 	"strconv"
 )
 
 type Puzzle struct {
 	grid       [9][9]uint8
 	candidates [9][9]uint16
+	n_slot     uint8
 }
 
 // TODO: don't create then init, create directly from file, use factory method
@@ -34,6 +37,7 @@ func (puzzle *Puzzle) InitFromFile(filename string) {
 			}
 		}
 	}
+	puzzle.n_slot = puzzle.slotcount()
 }
 
 func (puzzle *Puzzle) Print() {
@@ -117,6 +121,9 @@ func (puzzle *Puzzle) getCandidateCount(x, y int) (count uint) {
 }
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
+	if puzzle.grid[x][y] == 0 {
+		puzzle.n_slot -= 1
+	}
 	puzzle.grid[x][y] = value
 	for xx := 0; xx < 9; xx++ {
 		puzzle.candidates[xx][y] = 0
@@ -133,8 +140,7 @@ func (puzzle *Puzzle) Set(x, y int, value uint8) {
 	}
 }
 
-func (puzzle *Puzzle) Slotcount() uint {
-	var r uint = 0
+func (puzzle *Puzzle) slotcount() (r uint8) {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] == 0 {
@@ -142,7 +148,7 @@ func (puzzle *Puzzle) Slotcount() uint {
 			}
 		}
 	}
-	return r
+	return
 }
 
 type Stack struct {
@@ -182,7 +188,7 @@ func resolve(puzzle Puzzle) []Puzzle {
 		for _, c := range candidates {
 			next := Puzzle(current)
 			next.Set(x, y, c)
-			if next.Slotcount() == 0 {
+			if next.n_slot == 0 {
 				results = append(results, next)
 			} else {
 				stack.Push(next)
@@ -193,6 +199,17 @@ func resolve(puzzle Puzzle) []Puzzle {
 }
 
 func main() {
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			panic(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	var puzzle Puzzle
 	puzzle.InitFromFile("puzzle4")
 	puzzle.Print()
