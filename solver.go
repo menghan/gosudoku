@@ -48,30 +48,29 @@ func (puzzle *Puzzle) Print() {
 	}
 }
 
-func (puzzle *Puzzle) GetSlot() (int, int) {
-	var rx, ry int
+func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 	var min_cdd uint = 10 // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] != 0 {
 				continue
 			}
-			cdd := puzzle.GetCandidateCount(x, y)
+			cdd := puzzle.getCandidateCount(x, y)
 			if cdd < min_cdd {
 				rx, ry = x, y
 				min_cdd = cdd
 			}
 		}
 	}
-	return rx, ry
+	return
 }
 
 func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	if puzzle.candidates[x][y] == 0 {
 		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 	}
+	candidates := make([]uint8, 0, 9)
 	bit := puzzle.candidates[x][y]
-	candidates := []uint8{}
 	var i uint8 = 1
 	for ; i < 10; i++ {
 		if (bit & (1 << i)) == 0 {
@@ -81,8 +80,7 @@ func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	return candidates
 }
 
-func (puzzle *Puzzle) CalculateCandidates(x, y int) uint16 {
-	var bit uint16 = 0
+func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 	for xx := 0; xx < 9; xx++ {
 		bit |= 1 << puzzle.grid[xx][y]
 	}
@@ -96,23 +94,22 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) uint16 {
 			bit |= 1 << puzzle.grid[xx][yy]
 		}
 	}
-	bit &= 0x3FE
-	return bit
+	bit &= 0x3FE // FIXME: hardcode
+	return
 }
 
-func (puzzle *Puzzle) GetCandidateCount(x, y int) uint {
+func (puzzle *Puzzle) getCandidateCount(x, y int) (count uint) {
 	if puzzle.candidates[x][y] == 0 {
 		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 	}
 	bit := puzzle.candidates[x][y]
-	var count uint = 0
 	var i uint = 1
 	for ; i < 10; i++ {
 		if (bit & (1 << i)) == 0 {
 			count += 1
 		}
 	}
-	return count
+	return
 }
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
@@ -171,7 +168,11 @@ func resolve(puzzle Puzzle) []Puzzle {
 	stack.Init()
 	stack.Push(puzzle)
 	for stack.count != 0 {
-		var current Puzzle = stack.Pop().(Puzzle)
+		current, ok := stack.Pop().(Puzzle)
+		if ! ok {
+			fmt.Println("Pop invalid")
+			os.Exit(1)
+		}
 		x, y := current.GetSlot()
 		candidates := current.GetCandidates(x, y)
 		for _, c := range candidates {
