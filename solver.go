@@ -165,8 +165,9 @@ func (stack *Stack) Pop() interface{} {
 	return value
 }
 
-func resolve(puzzle Puzzle) Puzzle {
+func resolve(puzzle Puzzle) []Puzzle {
 	var stack Stack
+	var results []Puzzle
 	stack.Init()
 	stack.Push(puzzle)
 	for stack.count != 0 {
@@ -177,20 +178,23 @@ func resolve(puzzle Puzzle) Puzzle {
 			next := Puzzle(current)
 			next.Set(x, y, c)
 			if next.Slotcount() == 0 {
-				return next
+				results = append(results, next)
 			} else {
 				stack.Push(next)
 			}
 		}
 	}
-	return puzzle
+	return results
 }
 
 func main() {
 	var puzzle Puzzle
 	puzzle.InitFromFile("puzzle4")
 	puzzle.Print()
-	result := resolve(puzzle)
+	results := resolve(puzzle)
 	fmt.Println("result")
-	result.Print()
+	for _, result := range results {
+		result.Print()
+		fmt.Println()
+	}
 }
