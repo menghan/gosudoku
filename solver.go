@@ -4,6 +4,7 @@ import (
 	list "container/list"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	pprof "runtime/pprof"
 	"strconv"
@@ -16,28 +17,37 @@ type Puzzle struct {
 }
 
 // TODO: don't create then init, create directly from file, use factory method
-func (puzzle *Puzzle) InitFromFile(filename string) {
-	input_file, err := os.Open(filename)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer input_file.Close()
+func NewPuzzle(f *os.File) (*Puzzle, error) {
 	buf := make([]byte, 10)
+	var candidates [9][9]uint16
+	var grid [9][9]uint8
 	for x := 0; x < 9; x++ {
-		n, _ := input_file.Read(buf)
-		if n == 0 {
-			break
+		n, err := f.Read(buf)
+		if err != nil || n != len(buf) {
+			return nil, fmt.Errorf("read puzzle from file failed: %v", err)
 		}
 		for y := 0; y < 9; y++ {
-			puzzle.candidates[x][y] = 0
+			candidates[x][y] = 0
 			if buf[y] != '_' {
 				n, _ := strconv.ParseUint(string(buf[y]), 10, 8)
-				puzzle.grid[x][y] = uint8(n)
+				grid[x][y] = uint8(n)
 			}
 		}
 	}
-	puzzle.n_slot = puzzle.slotcount()
+	p := &Puzzle{
+		candidates: candidates,
+		grid:       grid,
+	}
+	p.n_slot = p.Slotcount()
+	return p, nil
+}
+
+func (puzzle *Puzzle) Copy() (*Puzzle) {
+	return &Puzzle{
+		candidates: puzzle.candidates,
+		grid:       puzzle.grid,
+		n_slot:     puzzle.n_slot,
+	}
 }
 
 func (puzzle *Puzzle) Print() {
@@ -140,7 +150,7 @@ func (puzzle *Puzzle) Set(x, y int, value uint8) {
 	}
 }
 
-func (puzzle *Puzzle) slotcount() (r uint8) {
+func (puzzle *Puzzle) Slotcount() (r uint8) {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] == 0 {
@@ -172,13 +182,13 @@ func (stack *Stack) Pop() interface{} {
 	return value
 }
 
-func resolve(puzzle Puzzle) []Puzzle {
+func resolve(puzzle *Puzzle) []*Puzzle {
 	var stack Stack
-	var results []Puzzle
+	var results []*Puzzle
 	stack.Init()
 	stack.Push(puzzle)
 	for stack.count != 0 {
-		current, ok := stack.Pop().(Puzzle)
+		current, ok := stack.Pop().(*Puzzle)
 		if ! ok {
 			fmt.Println("Pop invalid")
 			os.Exit(1)
@@ -186,7 +196,7 @@ func resolve(puzzle Puzzle) []Puzzle {
 		x, y := current.GetSlot()
 		candidates := current.GetCandidates(x, y)
 		for _, c := range candidates {
-			next := Puzzle(current)
+			next := current.Copy()
 			next.Set(x, y, c)
 			if next.n_slot == 0 {
 				results = append(results, next)
@@ -210,8 +220,15 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	var puzzle Puzzle
-	puzzle.InitFromFile("puzzle4")
+	file, err := os.Open("puzzle4")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	puzzle, err := NewPuzzle(file)
+	if err != nil {
+		log.Fatal(err)
+	}
 	puzzle.Print()
 	results := resolve(puzzle)
 	fmt.Println("result")
