@@ -16,11 +16,10 @@ type Puzzle struct {
 	n_slot     uint8
 }
 
-// TODO: don't create then init, create directly from file, use factory method
 func NewPuzzle(f *os.File) (*Puzzle, error) {
 	buf := make([]byte, 10)
-	var candidates [9][9]uint16
-	var grid [9][9]uint8
+	candidates := [9][9]uint16{}
+	grid := [9][9]uint8{}
 	for x := 0; x < 9; x++ {
 		n, err := f.Read(buf)
 		if err != nil || n != len(buf) {
@@ -64,7 +63,7 @@ func (puzzle *Puzzle) Print() {
 }
 
 func (puzzle *Puzzle) GetSlot() (rx, ry int) {
-	var min_cdd uint = 10 // 9 is the largest candidates count
+	min_cdd := uint(10) // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] != 0 {
@@ -89,8 +88,7 @@ func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
 	}
 	candidates := make([]uint8, 0, 9)
 	bit := puzzle.candidates[x][y]
-	var i uint8 = 1
-	for ; i < 10; i++ {
+	for i := uint8(1); i < 10; i++ {
 		if (bit & (1 << i)) == 0 {
 			candidates = append(candidates, i)
 		}
@@ -105,8 +103,8 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 	for yy := 0; yy < 9; yy++ {
 		bit |= 1 << puzzle.grid[x][yy]
 	}
-	var x_base int = x / 3 * 3
-	var y_base int = y / 3 * 3
+	x_base := x / 3 * 3
+	y_base := y / 3 * 3
 	for xx := x_base; xx < x_base+3; xx++ {
 		for yy := y_base; yy < y_base+3; yy++ {
 			bit |= 1 << puzzle.grid[xx][yy]
@@ -121,8 +119,7 @@ func (puzzle *Puzzle) getCandidateCount(x, y int) (count uint) {
 		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 	}
 	bit := puzzle.candidates[x][y]
-	var i uint = 1
-	for ; i < 10; i++ {
+	for i := uint(1); i < 10; i++ {
 		if (bit & (1 << i)) == 0 {
 			count += 1
 		}
@@ -141,8 +138,8 @@ func (puzzle *Puzzle) Set(x, y int, value uint8) {
 	for yy := 0; yy < 9; yy++ {
 		puzzle.candidates[x][yy] = 0
 	}
-	var x_base int = x / 3 * 3
-	var y_base int = y / 3 * 3
+	x_base := x / 3 * 3
+	y_base := y / 3 * 3
 	for xx := x_base; xx < x_base+3; xx++ {
 		for yy := y_base; yy < y_base+3; yy++ {
 			puzzle.candidates[xx][yy] = 0
@@ -166,8 +163,10 @@ type Stack struct {
 	nodes list.List
 }
 
-func (stack *Stack) Init() {
-	stack.nodes.Init()
+func NewStack() (*Stack) {
+	s := &Stack{}
+	s.nodes.Init()
+	return s
 }
 
 func (stack *Stack) Push(item interface{}) {
@@ -183,9 +182,8 @@ func (stack *Stack) Pop() interface{} {
 }
 
 func resolve(puzzle *Puzzle) []*Puzzle {
-	var stack Stack
-	var results []*Puzzle
-	stack.Init()
+	stack := NewStack()
+	results := make([]*Puzzle, 0, 1024)
 	stack.Push(puzzle)
 	for stack.count != 0 {
 		current, ok := stack.Pop().(*Puzzle)
@@ -209,7 +207,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 }
 
 func main() {
-	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
