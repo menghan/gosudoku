@@ -188,8 +188,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 	for stack.count != 0 {
 		current, ok := stack.Pop().(*Puzzle)
 		if ! ok {
-			fmt.Println("Pop invalid")
-			os.Exit(1)
+			log.Fatal("Pop invalid")
 		}
 		x, y := current.GetSlot()
 		candidates := current.GetCandidates(x, y)
@@ -228,7 +227,10 @@ func main() {
 		log.Fatal(err)
 	}
 	puzzle.Print()
-	results := resolve(puzzle)
+	var results []*Puzzle
+	for i := 0; i < 100; i++ {
+		results = resolve(puzzle)
+	}
 	fmt.Println("result")
 	for _, result := range results {
 		result.Print()
