@@ -193,12 +193,12 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 		x, y := current.GetSlot()
 		candidates := current.GetCandidates(x, y)
 		for _, c := range candidates {
-			next := current.Copy()
+			next := Puzzle(*current)
 			next.Set(x, y, c)
 			if next.n_slot == 0 {
-				results = append(results, next)
+				results = append(results, &next)
 			} else {
-				stack.Push(next)
+				stack.Push(&next)
 			}
 		}
 	}
