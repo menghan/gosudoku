@@ -85,7 +85,7 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 			if puzzle.grid[x][y] != 0 {
 				continue
 			}
-			cdd := puzzle.getCandidateCount(x, y)
+			cdd := getCandidateCount(puzzle.candidates[x][y])
 			if cdd < min_cdd {
 				rx, ry = x, y
 				min_cdd = cdd
@@ -125,10 +125,6 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 	}
 	bit &= 0x3FE // FIXME: hardcode
 	return
-}
-
-func (puzzle *Puzzle) getCandidateCount(x, y int) (count int) {
-	return getCandidateCount(puzzle.candidates[x][y])
 }
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
@@ -188,8 +184,12 @@ func (stack *Stack) Pop() interface{} {
 }
 
 func resolve(puzzle *Puzzle) []*Puzzle {
-	stack := NewStack()
 	results := make([]*Puzzle, 0, 1024)
+	if puzzle.n_slot == 0 {
+		results = append(results, puzzle)
+		return results
+	}
+	stack := NewStack()
 	stack.Push(puzzle)
 	for stack.count != 0 {
 		current, ok := stack.Pop().(*Puzzle)
