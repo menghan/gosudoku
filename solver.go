@@ -57,6 +57,11 @@ func NewPuzzle(f *os.File) (*Puzzle, error) {
 		grid:       grid,
 	}
 	p.n_slot = p.Slotcount()
+	for x := 0; x < 9; x++ {
+		for y := 0; y < 9; y++ {
+			p.candidates[x][y] = p.CalculateCandidates(x, y)
+		}
+	}
 	return p, nil
 }
 
@@ -94,9 +99,6 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 }
 
 func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
-	if puzzle.candidates[x][y] == 0 {
-		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
-	}
 	candidates := make([]uint8, 0, 9)
 	bit := puzzle.candidates[x][y]
 	for i := uint8(1); i < 10; i++ {
@@ -126,28 +128,27 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 }
 
 func (puzzle *Puzzle) getCandidateCount(x, y int) (count int) {
-	if puzzle.candidates[x][y] == 0 {
-		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
-	}
 	return getCandidateCount(puzzle.candidates[x][y])
 }
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
-	if puzzle.grid[x][y] == 0 {
-		puzzle.n_slot -= 1
+	if puzzle.grid[x][y] != 0 {
+		panic("set value to non-zero slot!")
 	}
+	puzzle.n_slot -= 1
 	puzzle.grid[x][y] = value
+	or_value := uint16(1 << value)
 	for xx := 0; xx < 9; xx++ {
-		puzzle.candidates[xx][y] = 0
+		puzzle.candidates[xx][y] |= or_value
 	}
 	for yy := 0; yy < 9; yy++ {
-		puzzle.candidates[x][yy] = 0
+		puzzle.candidates[x][yy] |= or_value
 	}
 	x_base := x / 3 * 3
 	y_base := y / 3 * 3
 	for xx := x_base; xx < x_base+3; xx++ {
 		for yy := y_base; yy < y_base+3; yy++ {
-			puzzle.candidates[xx][yy] = 0
+			puzzle.candidates[xx][yy] |= or_value
 		}
 	}
 }
