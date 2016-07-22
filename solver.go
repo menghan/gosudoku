@@ -60,14 +60,6 @@ func NewPuzzle(f *os.File) (*Puzzle, error) {
 	return p, nil
 }
 
-func (puzzle *Puzzle) Copy() *Puzzle {
-	return &Puzzle{
-		candidates: puzzle.candidates,
-		grid:       puzzle.grid,
-		n_slot:     puzzle.n_slot,
-	}
-}
-
 func (puzzle *Puzzle) Print() {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
