@@ -8,7 +8,26 @@ import (
 	"os"
 	pprof "runtime/pprof"
 	"strconv"
+	"sync"
 )
+
+var candidateCountTable [512]int
+var initCandidateCountOnce sync.Once
+
+func getCandidateCount(val uint16) int {
+	initCandidateCountOnce.Do(func() {
+		for v := 0; v < 512; v++ {
+			count := 0
+			for i := uint(0); i < 9; i++ {
+				if (v & (1 << i)) == 0 {
+					count += 1
+				}
+			}
+			candidateCountTable[v] = count
+		}
+	})
+	return candidateCountTable[val>>1]
+}
 
 type Puzzle struct {
 	grid       [9][9]uint8
@@ -63,7 +82,7 @@ func (puzzle *Puzzle) Print() {
 }
 
 func (puzzle *Puzzle) GetSlot() (rx, ry int) {
-	min_cdd := uint(10) // 9 is the largest candidates count
+	min_cdd := int(10) // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] != 0 {
@@ -114,17 +133,11 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 	return
 }
 
-func (puzzle *Puzzle) getCandidateCount(x, y int) (count uint) {
+func (puzzle *Puzzle) getCandidateCount(x, y int) (count int) {
 	if puzzle.candidates[x][y] == 0 {
 		puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 	}
-	bit := puzzle.candidates[x][y]
-	for i := uint(1); i < 10; i++ {
-		if (bit & (1 << i)) == 0 {
-			count += 1
-		}
-	}
-	return
+	return getCandidateCount(puzzle.candidates[x][y])
 }
 
 func (puzzle *Puzzle) Set(x, y int, value uint8) {
