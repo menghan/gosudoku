@@ -41,7 +41,7 @@ func NewPuzzle(f *os.File) (*Puzzle, error) {
 	return p, nil
 }
 
-func (puzzle *Puzzle) Copy() (*Puzzle) {
+func (puzzle *Puzzle) Copy() *Puzzle {
 	return &Puzzle{
 		candidates: puzzle.candidates,
 		grid:       puzzle.grid,
@@ -163,7 +163,7 @@ type Stack struct {
 	nodes list.List
 }
 
-func NewStack() (*Stack) {
+func NewStack() *Stack {
 	s := &Stack{}
 	s.nodes.Init()
 	return s
@@ -187,7 +187,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 	stack.Push(puzzle)
 	for stack.count != 0 {
 		current, ok := stack.Pop().(*Puzzle)
-		if ! ok {
+		if !ok {
 			log.Fatal("Pop invalid")
 		}
 		x, y := current.GetSlot()
