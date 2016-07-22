@@ -208,6 +208,8 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 func main() {
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 	heapprofile := flag.String("heapprofile", "", "write heap profile to file")
+	count := flag.Int("count", 100, "calculation count")
+	puzzleFile := flag.String("file", "", "target puzzle file")
 	flag.Parse()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -225,7 +227,7 @@ func main() {
 		pprof.WriteHeapProfile(f)
 	}
 
-	file, err := os.Open("puzzle4")
+	file, err := os.Open(*puzzleFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -236,7 +238,7 @@ func main() {
 	}
 	puzzle.Print()
 	var results []*Puzzle
-	for i := 0; i < 100; i++ {
+	for i := 0; i < *count; i++ {
 		results = resolve(puzzle)
 	}
 	fmt.Println("result")
