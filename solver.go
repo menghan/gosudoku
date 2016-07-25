@@ -178,7 +178,7 @@ func (puzzle *Puzzle) Slotcount() (r uint8) {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] == 0 {
-				r += 1
+				r++
 			}
 		}
 	}
@@ -187,21 +187,21 @@ func (puzzle *Puzzle) Slotcount() (r uint8) {
 
 type stack struct {
 	top   uint
-	items []interface{}
+	items []*Puzzle
 }
 
 func newStack() *stack {
 	return &stack{
-		items: make([]interface{}, 10240),
+		items: make([]*Puzzle, 10240),
 	}
 }
 
-func (s *stack) Push(item interface{}) {
+func (s *stack) Push(item *Puzzle) {
 	s.items[s.top] = item
 	s.top++
 }
 
-func (s *stack) Pop() interface{} {
+func (s *stack) Pop() *Puzzle {
 	if s.top == 0 {
 		panic("stackunderflow!")
 	}
@@ -228,10 +228,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 	stack := newStack()
 	stack.Push(puzzleCopy)
 	for stack.top != 0 {
-		current, ok := stack.Pop().(*Puzzle)
-		if !ok {
-			log.Fatal("Pop invalid")
-		}
+		current := stack.Pop()
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
 		for _, c := range candidatesResult {
