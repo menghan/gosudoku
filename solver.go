@@ -317,12 +317,11 @@ func main() {
 	puzzle.Print()
 
 	solver := newSolver(*concurrency)
-	var results []*Puzzle
 	for i := 0; i < *count; i++ {
-		results = solver.Solve(&puzzle)
+		solver.Solve(&puzzle)
 	}
 	fmt.Println("result")
-	for _, result := range results {
+	for _, result := range solver.results {
 		result.Print()
 		fmt.Println()
 	}
