@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	pprof "runtime/pprof"
@@ -37,34 +38,28 @@ type Puzzle struct {
 	n_slot     uint8
 }
 
-func NewPuzzle(f *os.File) (*Puzzle, error) {
+func (puzzle *Puzzle) ReadFrom(f io.Reader) error {
 	buf := make([]byte, 10)
-	candidates := [9][9]uint16{}
-	grid := [9][9]uint8{}
 	for x := 0; x < 9; x++ {
 		n, err := f.Read(buf)
 		if err != nil || n != len(buf) {
-			return nil, fmt.Errorf("read puzzle from file failed: %v", err)
+			return fmt.Errorf("read puzzle from file failed: %v", err)
 		}
 		for y := 0; y < 9; y++ {
-			candidates[x][y] = 0
+			puzzle.candidates[x][y] = 0
 			if buf[y] != '_' {
 				n, _ := strconv.ParseUint(string(buf[y]), 10, 8)
-				grid[x][y] = uint8(n)
+				puzzle.grid[x][y] = uint8(n)
 			}
 		}
 	}
-	p := &Puzzle{
-		candidates: candidates,
-		grid:       grid,
-	}
-	p.n_slot = p.Slotcount()
+	puzzle.n_slot = puzzle.Slotcount()
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
-			p.candidates[x][y] = p.CalculateCandidates(x, y)
+			puzzle.candidates[x][y] = puzzle.CalculateCandidates(x, y)
 		}
 	}
-	return p, nil
+	return nil
 }
 
 func newPuzzle() interface{} {
@@ -267,14 +262,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	puzzle, err := NewPuzzle(file)
+	var puzzle Puzzle
+	err = puzzle.ReadFrom(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 	puzzle.Print()
 	var results []*Puzzle
 	for i := 0; i < *count; i++ {
-		results = resolve(puzzle)
+		results = resolve(&puzzle)
 	}
 	fmt.Println("result")
 	for _, result := range results {
