@@ -1,7 +1,6 @@
 package main
 
 import (
-	list "container/list"
 	"flag"
 	"fmt"
 	"log"
@@ -184,27 +183,30 @@ func (puzzle *Puzzle) Slotcount() (r uint8) {
 	return
 }
 
-type Stack struct {
-	count uint
-	nodes list.List
+type stack struct {
+	top   uint
+	items []interface{}
 }
 
-func NewStack() *Stack {
-	s := &Stack{}
-	s.nodes.Init()
-	return s
+func newStack() *stack {
+	return &stack{
+		items: make([]interface{}, 10240),
+	}
 }
 
-func (stack *Stack) Push(item interface{}) {
-	stack.nodes.PushBack(item)
-	stack.count++
+func (s *stack) Push(item interface{}) {
+	s.items[s.top] = item
+	s.top++
 }
 
-func (stack *Stack) Pop() interface{} {
-	stack.count--
-	poped := stack.nodes.Back()
-	value := stack.nodes.Remove(poped)
-	return value
+func (s *stack) Pop() interface{} {
+	if s.top == 0 {
+		panic("stackunderflow!")
+	}
+	s.top--
+	v := s.items[s.top]
+	s.items[s.top] = nil
+	return v
 }
 
 func resolve(puzzle *Puzzle) []*Puzzle {
@@ -219,9 +221,9 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 	puzzleCopy := getPuzzle(syncPool)
 	puzzleCopy.Reset(puzzle)
 
-	stack := NewStack()
+	stack := newStack()
 	stack.Push(puzzleCopy)
-	for stack.count != 0 {
+	for stack.top != 0 {
 		current, ok := stack.Pop().(*Puzzle)
 		if !ok {
 			log.Fatal("Pop invalid")
