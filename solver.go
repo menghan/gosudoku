@@ -10,13 +10,13 @@ import (
 	"sync"
 )
 
-var candidateCountTable [512]int
+var candidateCountTable [512]uint8
 var initCandidateCountOnce sync.Once
 
-func getCandidateCount(val uint16) int {
+func getCandidateCount(val uint16) uint8 {
 	initCandidateCountOnce.Do(func() {
 		for v := 0; v < 512; v++ {
-			count := 0
+			count := uint8(0)
 			for i := uint(0); i < 9; i++ {
 				if (v & (1 << i)) == 0 {
 					count += 1
@@ -102,7 +102,7 @@ func (puzzle *Puzzle) Reset(other *Puzzle) {
 }
 
 func (puzzle *Puzzle) GetSlot() (rx, ry int) {
-	min_cdd := int(10) // 9 is the largest candidates count
+	min_cdd := uint8(10) // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
 			if puzzle.grid[x][y] != 0 {
