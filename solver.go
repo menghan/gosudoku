@@ -13,7 +13,7 @@ import (
 var candidateCountTable [512]uint8
 var initCandidateCountOnce sync.Once
 
-func getCandidateCount(val uint16) uint8 {
+func init() {
 	initCandidateCountOnce.Do(func() {
 		for v := 0; v < 512; v++ {
 			count := uint8(0)
@@ -25,6 +25,9 @@ func getCandidateCount(val uint16) uint8 {
 			candidateCountTable[v] = count
 		}
 	})
+}
+
+func getCandidateCount(val uint16) uint8 {
 	return candidateCountTable[val>>1]
 }
 
