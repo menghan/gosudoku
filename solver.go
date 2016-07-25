@@ -111,10 +111,10 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 			cdd := getCandidateCount(puzzle.candidates[x][y])
 			if cdd < min_cdd {
 				rx, ry = x, y
-				min_cdd = cdd
-				if min_cdd == 1 {
+				if cdd == 1 {
 					return
 				}
+				min_cdd = cdd
 			}
 		}
 	}
