@@ -96,7 +96,7 @@ func (puzzle *Puzzle) Print() {
 	}
 }
 
-func (puzzle *Puzzle) Reset(other Puzzle) {
+func (puzzle *Puzzle) Reset(other *Puzzle) {
 	puzzle.grid = other.grid
 	puzzle.candidates = other.candidates
 	puzzle.n_slot = other.n_slot
@@ -225,7 +225,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 		candidates := current.GetCandidates(x, y)
 		for _, c := range candidates {
 			next := getPuzzle(syncPool)
-			next.Reset(*current)
+			next.Reset(current)
 			next.Set(x, y, c)
 			if next.n_slot == 0 {
 				results = append(results, next)
