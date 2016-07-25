@@ -65,6 +65,24 @@ func NewPuzzle(f *os.File) (*Puzzle, error) {
 	return p, nil
 }
 
+func newPuzzle() interface{} {
+	return &Puzzle{}
+}
+
+func newPool() *sync.Pool {
+	return &sync.Pool{
+		New: newPuzzle,
+	}
+}
+
+func getPuzzle(pool *sync.Pool) *Puzzle {
+	return pool.Get().(*Puzzle)
+}
+
+func putPuzzle(pool *sync.Pool, puzzle *Puzzle) {
+	pool.Put(puzzle)
+}
+
 func (puzzle *Puzzle) Print() {
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
@@ -76,6 +94,12 @@ func (puzzle *Puzzle) Print() {
 		}
 		fmt.Printf("\n")
 	}
+}
+
+func (puzzle *Puzzle) Reset(other Puzzle) {
+	puzzle.grid = other.grid
+	puzzle.candidates = other.candidates
+	puzzle.n_slot = other.n_slot
 }
 
 func (puzzle *Puzzle) GetSlot() (rx, ry int) {
@@ -189,6 +213,7 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 		results = append(results, puzzle)
 		return results
 	}
+	syncPool := newPool()
 	stack := NewStack()
 	stack.Push(puzzle)
 	for stack.count != 0 {
@@ -199,14 +224,16 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 		x, y := current.GetSlot()
 		candidates := current.GetCandidates(x, y)
 		for _, c := range candidates {
-			next := Puzzle(*current)
+			next := getPuzzle(syncPool)
+			next.Reset(*current)
 			next.Set(x, y, c)
 			if next.n_slot == 0 {
-				results = append(results, &next)
+				results = append(results, next)
 			} else {
-				stack.Push(&next)
+				stack.Push(next)
 			}
 		}
+		putPuzzle(syncPool, current)
 	}
 	return results
 }
