@@ -213,9 +213,14 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 		results = append(results, puzzle)
 		return results
 	}
+
+	// use copy version of input argument
 	syncPool := newPool()
+	puzzleCopy := getPuzzle(syncPool)
+	puzzleCopy.Reset(puzzle)
+
 	stack := NewStack()
-	stack.Push(puzzle)
+	stack.Push(puzzleCopy)
 	for stack.count != 0 {
 		current, ok := stack.Pop().(*Puzzle)
 		if !ok {
