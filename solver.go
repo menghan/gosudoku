@@ -193,25 +193,9 @@ type stack struct {
 func newStack() *stack {
 	s := &stack{
 		lock:  &sync.Mutex{},
-		C:     make(chan *Puzzle, 64),
 		items: make([]*Puzzle, 10240),
 	}
 	s.cond = sync.NewCond(s.lock)
-
-	go func() {
-		for {
-			s.lock.Lock()
-			for s.top == 0 {
-				s.cond.Wait()
-			}
-			s.top--
-			v := s.items[s.top]
-			s.items[s.top] = nil
-			s.lock.Unlock()
-			s.C <- v
-		}
-	}()
-
 	return s
 }
 
@@ -221,6 +205,18 @@ func (s *stack) Push(item *Puzzle) {
 	s.top++
 	s.lock.Unlock()
 	s.cond.Signal()
+}
+
+func (s *stack) Pop() *Puzzle {
+	s.lock.Lock()
+	for s.top == 0 {
+		s.cond.Wait()
+	}
+	s.top--
+	v := s.items[s.top]
+	s.items[s.top] = nil
+	s.lock.Unlock()
+	return v
 }
 
 type solver struct {
@@ -248,26 +244,24 @@ func newSolver(concurrency int) *solver {
 func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	for {
-		select {
-		case current := <-s.stack.C:
-			x, y := current.GetSlot()
-			current.GetCandidates(&candidatesResult, x, y)
-			for _, c := range candidatesResult {
-				next := getPuzzle(s.syncPool)
-				next.Reset(current)
-				next.Set(x, y, c)
-				if next.n_slot == 0 {
-					s.Lock()
-					s.results = append(s.results, next)
-					s.Unlock()
-				} else {
-					s.wg.Add(1)
-					s.stack.Push(next)
-				}
+		current := s.stack.Pop()
+		x, y := current.GetSlot()
+		current.GetCandidates(&candidatesResult, x, y)
+		for _, c := range candidatesResult {
+			next := getPuzzle(s.syncPool)
+			next.Reset(current)
+			next.Set(x, y, c)
+			if next.n_slot == 0 {
+				s.Lock()
+				s.results = append(s.results, next)
+				s.Unlock()
+			} else {
+				s.wg.Add(1)
+				s.stack.Push(next)
 			}
-			putPuzzle(s.syncPool, current)
-			s.wg.Done()
 		}
+		putPuzzle(s.syncPool, current)
+		s.wg.Done()
 	}
 }
 
