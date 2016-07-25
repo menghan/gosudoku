@@ -121,15 +121,14 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 	return
 }
 
-func (puzzle *Puzzle) GetCandidates(x, y int) []uint8 {
-	candidates := make([]uint8, 0, 9)
+func (puzzle *Puzzle) GetCandidates(result *[]uint8, x, y int) {
+	*result = (*result)[:0]
 	bit := puzzle.candidates[x][y]
 	for i := uint8(1); i < 10; i++ {
 		if (bit & (1 << i)) == 0 {
-			candidates = append(candidates, i)
+			*result = append(*result, i)
 		}
 	}
-	return candidates
 }
 
 func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
@@ -221,6 +220,8 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 	puzzleCopy := getPuzzle(syncPool)
 	puzzleCopy.Reset(puzzle)
 
+	candidatesResult := make([]uint8, 0, 9)
+
 	stack := newStack()
 	stack.Push(puzzleCopy)
 	for stack.top != 0 {
@@ -229,8 +230,8 @@ func resolve(puzzle *Puzzle) []*Puzzle {
 			log.Fatal("Pop invalid")
 		}
 		x, y := current.GetSlot()
-		candidates := current.GetCandidates(x, y)
-		for _, c := range candidates {
+		current.GetCandidates(&candidatesResult, x, y)
+		for _, c := range candidatesResult {
 			next := getPuzzle(syncPool)
 			next.Reset(current)
 			next.Set(x, y, c)
