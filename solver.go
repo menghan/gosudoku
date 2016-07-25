@@ -205,6 +205,7 @@ func newStack() *stack {
 			}
 			s.top--
 			v := s.items[s.top]
+			s.items[s.top] = nil
 			s.lock.Unlock()
 			s.C <- v
 		}
@@ -292,6 +293,7 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 func main() {
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 	count := flag.Int("count", 100, "calculation count")
+	concurrency := flag.Int("concurrency", 1, "concurrency")
 	puzzleFile := flag.String("file", "", "target puzzle file")
 	flag.Parse()
 	if *cpuprofile != "" {
@@ -314,7 +316,7 @@ func main() {
 	}
 	puzzle.Print()
 
-	solver := newSolver(4)
+	solver := newSolver(*concurrency)
 	var results []*Puzzle
 	for i := 0; i < *count; i++ {
 		results = solver.Solve(&puzzle)
