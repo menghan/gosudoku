@@ -270,7 +270,7 @@ func (s *solver) workerSolve() {
 }
 
 func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
-	s.results = s.results[0:]
+	s.results = s.results[:0]
 
 	if puzzle.n_slot == 0 {
 		s.results = append(s.results, puzzle)
