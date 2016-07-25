@@ -324,6 +324,5 @@ func main() {
 	fmt.Println("result")
 	for _, result := range solver.results {
 		result.Print()
-		fmt.Println()
 	}
 }
