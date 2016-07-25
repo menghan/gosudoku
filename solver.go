@@ -105,6 +105,9 @@ func (puzzle *Puzzle) Reset(other *Puzzle) {
 }
 
 func (puzzle *Puzzle) GetSlot() (rx, ry int) {
+	if puzzle.n_slot <= 0 {
+		panic("no slot can be found!")
+	}
 	min_cdd := uint8(10) // 9 is the largest candidates count
 	for x := 0; x < 9; x++ {
 		for y := 0; y < 9; y++ {
