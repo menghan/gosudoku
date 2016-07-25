@@ -12,20 +12,21 @@ import (
 )
 
 var candidateCountTable [512]uint8
-var initCandidateCountOnce sync.Once
 
 func init() {
-	initCandidateCountOnce.Do(func() {
-		for v := 0; v < 512; v++ {
-			count := uint8(0)
-			for i := uint(0); i < 9; i++ {
-				if (v & (1 << i)) == 0 {
-					count += 1
-				}
+	initCandidateCountTable()
+}
+
+func initCandidateCountTable() {
+	for v := 0; v < 512; v++ {
+		count := uint8(0)
+		for i := uint(0); i < 9; i++ {
+			if (v & (1 << i)) == 0 {
+				count += 1
 			}
-			candidateCountTable[v] = count
 		}
-	})
+		candidateCountTable[v] = count
+	}
 }
 
 func getCandidateCount(val uint16) uint8 {
