@@ -122,9 +122,9 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 func (puzzle *Puzzle) GetCandidates(result *[]uint8, x, y int) {
 	*result = (*result)[:0]
 	bit := puzzle.candidates[x][y]
-	for i := uint8(1); i < 10; i++ {
-		if (bit & (1 << i)) == 0 {
-			*result = append(*result, i)
+	for i, v := range []uint16{2, 4, 8, 16, 32, 64, 128, 256, 512} {
+		if bit&v == 0 {
+			*result = append(*result, uint8(i+1))
 		}
 	}
 }
