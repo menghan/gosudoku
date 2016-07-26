@@ -149,7 +149,7 @@ func (puzzle *Puzzle) CalculateCandidates(x, y int) (bit uint16) {
 	return
 }
 
-func (puzzle *Puzzle) Set(x, y int, value uint8) {
+func (puzzle *Puzzle) Set(x, y int, value uint8) bool {
 	if puzzle.grid[x][y] != 0 {
 		panic("set value to non-zero slot!")
 	}
@@ -158,17 +158,27 @@ func (puzzle *Puzzle) Set(x, y int, value uint8) {
 	or_value := uint16(1 << value)
 	for xx := 0; xx < 9; xx++ {
 		puzzle.candidates[xx][y] |= or_value
+		if puzzle.candidates[xx][y] == 1022 && puzzle.grid[xx][y] == 0 {
+			return false
+		}
 	}
 	for yy := 0; yy < 9; yy++ {
 		puzzle.candidates[x][yy] |= or_value
+		if puzzle.candidates[x][yy] == 1022 && puzzle.grid[x][yy] == 0 {
+			return false
+		}
 	}
 	x_base := x / 3 * 3
 	y_base := y / 3 * 3
 	for xx := x_base; xx < x_base+3; xx++ {
 		for yy := y_base; yy < y_base+3; yy++ {
 			puzzle.candidates[xx][yy] |= or_value
+			if puzzle.candidates[xx][yy] == 1022 && puzzle.grid[xx][yy] == 0 {
+				return false
+			}
 		}
 	}
+	return true
 }
 
 func (puzzle *Puzzle) Slotcount() (r uint8) {
@@ -249,7 +259,10 @@ func (s *solver) workerSolve(initPuzzle *Puzzle) {
 		for _, c := range candidatesResult {
 			next := getPuzzle(s.syncPool)
 			next.Reset(current)
-			next.Set(x, y, c)
+			if !next.Set(x, y, c) {
+				putPuzzle(s.syncPool, next)
+				continue
+			}
 			if next.n_slot == 0 {
 				s.Lock()
 				s.results = append(s.results, next)
@@ -281,7 +294,10 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	for _, c := range candidatesResult {
 		next := getPuzzle(s.syncPool)
 		next.Reset(puzzleCopy)
-		next.Set(x, y, c)
+		if !next.Set(x, y, c) {
+			putPuzzle(s.syncPool, next)
+			continue
+		}
 		go s.workerSolve(next)
 	}
 
