@@ -186,7 +186,6 @@ type stack struct {
 	lock *sync.Mutex
 	cond *sync.Cond
 
-	C     chan *Puzzle
 	top   uint64
 	items []*Puzzle
 }
