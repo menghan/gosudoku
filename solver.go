@@ -187,19 +187,19 @@ type stack struct {
 	cond *sync.Cond
 
 	top   uint64
-	items []*Puzzle
+	items []interface{}
 }
 
-func newStack() *stack {
-	s := &stack{
-		lock:  &sync.Mutex{},
-		items: make([]*Puzzle, 10240),
+func newStack(preallocSize int) *stack {
+	var l sync.Mutex
+	return &stack{
+		lock:  &l,
+		cond:  sync.NewCond(&l),
+		items: make([]interface{}, preallocSize),
 	}
-	s.cond = sync.NewCond(s.lock)
-	return s
 }
 
-func (s *stack) Push(item *Puzzle) {
+func (s *stack) Push(item interface{}) {
 	s.lock.Lock()
 	s.items[s.top] = item
 	s.top++
@@ -207,7 +207,7 @@ func (s *stack) Push(item *Puzzle) {
 	s.cond.Signal()
 }
 
-func (s *stack) Pop() *Puzzle {
+func (s *stack) Pop() interface{} {
 	s.lock.Lock()
 	for s.top == 0 {
 		s.cond.Wait()
@@ -231,7 +231,7 @@ type solver struct {
 
 func newSolver(concurrency int) *solver {
 	s := &solver{
-		stack:    newStack(),
+		stack:    newStack(10240),
 		syncPool: newPool(),
 		results:  make([]*Puzzle, 0, 64),
 	}
@@ -244,7 +244,7 @@ func newSolver(concurrency int) *solver {
 func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	for {
-		current := s.stack.Pop()
+		current := s.stack.Pop().(*Puzzle)
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
 		for _, c := range candidatesResult {
