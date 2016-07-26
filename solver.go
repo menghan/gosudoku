@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	pprof "runtime/pprof"
 	"strconv"
 	"sync"
@@ -287,6 +288,7 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 
 func main() {
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
+	blockprofile := flag.String("blockprofile", "", "write block profile to file")
 	count := flag.Int("count", 100, "calculation count")
 	concurrency := flag.Int("concurrency", 1, "concurrency")
 	puzzleFile := flag.String("file", "", "target puzzle file")
@@ -299,13 +301,17 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+	if *blockprofile != "" {
+		runtime.SetBlockProfileRate(1)
+	}
+
+	var puzzle Puzzle
 	file, err := os.Open(*puzzleFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
-	var puzzle Puzzle
 	err = puzzle.ReadFrom(file)
+	file.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -319,4 +325,10 @@ func main() {
 	for _, result := range solver.results {
 		result.Print()
 	}
+	file, err = os.Create(*blockprofile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.Lookup("block").WriteTo(file, 1)
+	file.Close()
 }
