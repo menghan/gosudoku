@@ -43,9 +43,8 @@ func (s *stack) Pop() int {
 }
 
 func benchmarkStack(b *testing.B, concurrency int) {
-	pushes := func(s *stack, count int, wg *sync.WaitGroup) {
+	pushes := func(s *stack, count int) {
 		for i := 0; i < count; i++ {
-			wg.Add(1)
 			s.Push(1)
 		}
 	}
@@ -53,18 +52,19 @@ func benchmarkStack(b *testing.B, concurrency int) {
 	pops := func(s *stack, count int, wg *sync.WaitGroup) {
 		for i := 0; i < count; i++ {
 			s.Pop()
-			wg.Done()
 		}
+		wg.Done()
 	}
 
 	count := 1000
 	s := newStack(count * concurrency)
 	wg := &sync.WaitGroup{}
 	for n := 0; n < b.N; n++ {
+		wg.Add(concurrency)
 		for i := 0; i < concurrency; i++ {
 			go pops(s, count, wg)
 		}
-		pushes(s, count*concurrency, wg)
+		pushes(s, count*concurrency)
 		wg.Wait()
 	}
 }
