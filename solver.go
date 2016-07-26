@@ -183,68 +183,67 @@ func (puzzle *Puzzle) Slotcount() (r uint8) {
 }
 
 type stack struct {
-	lock *sync.Mutex
-	cond *sync.Cond
-
-	top   uint64
-	items []interface{}
+	items []*Puzzle
 }
 
 func newStack(preallocSize int) *stack {
-	var l sync.Mutex
 	return &stack{
-		lock:  &l,
-		cond:  sync.NewCond(&l),
-		items: make([]interface{}, preallocSize),
+		items: make([]*Puzzle, 0, preallocSize),
 	}
 }
 
-func (s *stack) Push(item interface{}) {
-	s.lock.Lock()
-	s.items[s.top] = item
-	s.top++
-	s.lock.Unlock()
-	s.cond.Signal()
+func (s *stack) Push(item *Puzzle) {
+	s.items = append(s.items, item)
 }
 
-func (s *stack) Pop() interface{} {
-	s.lock.Lock()
-	for s.top == 0 {
-		s.cond.Wait()
+func (s *stack) Pop() *Puzzle {
+	l := len(s.items)
+	if l <= 0 {
+		panic("stackunderflow!")
 	}
-	s.top--
-	v := s.items[s.top]
-	s.items[s.top] = nil
-	s.lock.Unlock()
+	v := s.items[l-1]
+	s.items[l-1] = nil
+	s.items = s.items[:l-1]
 	return v
 }
 
 type solver struct {
 	sync.Mutex
-
 	wg sync.WaitGroup
 
-	stack    *stack
-	syncPool *sync.Pool
-	results  []*Puzzle
+	c chan *Puzzle
+
+	concurrency int
+	syncPool    *sync.Pool
+	results     []*Puzzle
 }
 
 func newSolver(concurrency int) *solver {
 	s := &solver{
-		stack:    newStack(10240),
+		c:        make(chan *Puzzle, 64),
 		syncPool: newPool(),
 		results:  make([]*Puzzle, 0, 64),
-	}
-	for i := 0; i < concurrency; i++ {
-		go s.workerSolve()
 	}
 	return s
 }
 
-func (s *solver) workerSolve() {
+func (s *solver) workerSolve(initPuzzle *Puzzle) {
 	candidatesResult := make([]uint8, 0, 9)
+	stack := newStack(64)
+	stack.Push(initPuzzle)
+
+	var current *Puzzle
 	for {
-		current := s.stack.Pop().(*Puzzle)
+		if len(stack.items) != 0 {
+			current = stack.Pop()
+		} else {
+			select {
+			case current = <-s.c:
+			default:
+				s.wg.Done()
+				return
+			}
+		}
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
 		for _, c := range candidatesResult {
@@ -256,12 +255,10 @@ func (s *solver) workerSolve() {
 				s.results = append(s.results, next)
 				s.Unlock()
 			} else {
-				s.wg.Add(1)
-				s.stack.Push(next)
+				stack.Push(next)
 			}
 		}
 		putPuzzle(s.syncPool, current)
-		s.wg.Done()
 	}
 }
 
@@ -277,11 +274,18 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	puzzleCopy := getPuzzle(s.syncPool)
 	puzzleCopy.Reset(puzzle)
 
-	s.wg.Add(1)
-	s.stack.Push(puzzleCopy)
+	candidatesResult := make([]uint8, 0, 9)
+	x, y := puzzleCopy.GetSlot()
+	puzzleCopy.GetCandidates(&candidatesResult, x, y)
+	s.wg.Add(len(candidatesResult))
+	for _, c := range candidatesResult {
+		next := getPuzzle(s.syncPool)
+		next.Reset(puzzleCopy)
+		next.Set(x, y, c)
+		go s.workerSolve(next)
+	}
 
 	s.wg.Wait()
-
 	return s.results
 }
 
@@ -324,10 +328,12 @@ func main() {
 	for _, result := range solver.results {
 		result.Print()
 	}
-	file, err = os.Create(*blockprofile)
-	if err != nil {
-		log.Fatal(err)
+	if *blockprofile != "" {
+		file, err = os.Create(*blockprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.Lookup("block").WriteTo(file, 1)
+		file.Close()
 	}
-	pprof.Lookup("block").WriteTo(file, 1)
-	file.Close()
 }
