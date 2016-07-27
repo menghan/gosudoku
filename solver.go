@@ -229,21 +229,31 @@ func (s *stack) Pop() *Puzzle {
 
 type solver struct {
 	sync.Mutex
-	wg sync.WaitGroup
+	cond *sync.Cond
+	wg   sync.WaitGroup
 
 	c chan *Puzzle
 
 	syncPool    *sync.Pool
 	concurrency int
 	results     []*Puzzle
+	GRstarted   chan struct{}
 }
 
 func newSolver(concurrency int) *solver {
 	s := &solver{
 		c:           make(chan *Puzzle, 64),
+		cond:        sync.NewCond(&sync.Mutex{}),
 		syncPool:    newPool(),
 		concurrency: concurrency,
 		results:     make([]*Puzzle, 0, 64),
+		GRstarted:   make(chan struct{}, concurrency),
+	}
+	for i := 0; i < s.concurrency; i++ {
+		go s.workerSolve()
+	}
+	for i := 0; i < s.concurrency; i++ {
+		<-s.GRstarted
 	}
 	return s
 }
@@ -252,8 +262,16 @@ func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
 	var current *Puzzle
+	var working bool = false
+	s.GRstarted <- struct{}{}
 
 	for {
+		if !working {
+			s.cond.L.Lock()
+			s.cond.Wait()
+			s.cond.L.Unlock()
+			working = true
+		}
 		if len(stack.items) != 0 {
 			current = stack.Pop()
 		} else {
@@ -261,7 +279,8 @@ func (s *solver) workerSolve() {
 			case current = <-s.c:
 			default:
 				s.wg.Done()
-				return
+				working = false
+				continue
 			}
 		}
 		x, y := current.GetSlot()
@@ -297,17 +316,18 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	x, y := puzzle.GetSlot()
 	puzzle.GetCandidates(&candidatesResult, x, y)
 	for _, c := range candidatesResult {
-		next := &Puzzle{}
+		next := getPuzzle(s.syncPool)
 		next.Reset(puzzle)
-		if next.Set(x, y, c) {
-			s.c <- next
+		if !next.Set(x, y, c) {
+			putPuzzle(s.syncPool, next)
+			continue
 		}
+		s.c <- next
 	}
 	s.wg.Add(s.concurrency)
-	for i := 0; i < s.concurrency; i++ {
-		go s.workerSolve()
-	}
-
+	s.cond.L.Lock()
+	s.cond.Broadcast()
+	s.cond.L.Unlock()
 	s.wg.Wait()
 	return s.results
 }
