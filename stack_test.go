@@ -1,4 +1,4 @@
-package stack_test
+package main
 
 // go test -test.benchmem -test.bench Stack stack_test.go
 
