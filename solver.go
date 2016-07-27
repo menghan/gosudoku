@@ -121,26 +121,6 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 	return
 }
 
-func (puzzle *Puzzle) GetMaxSlot() (rx, ry int) {
-	max_cdd := uint8(0)
-	for x := 0; x < 9; x++ {
-		for y := 0; y < 9; y++ {
-			if puzzle.grid[x][y] != 0 {
-				continue
-			}
-			cdd := getCandidateCount(puzzle.candidates[x][y])
-			if cdd > max_cdd {
-				rx, ry = x, y
-				if cdd == 9 {
-					return
-				}
-				max_cdd = cdd
-			}
-		}
-	}
-	return
-}
-
 func (puzzle *Puzzle) GetCandidates(result *[]uint8, x, y int) {
 	*result = (*result)[:0]
 	bit := puzzle.candidates[x][y]
@@ -300,7 +280,7 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	}
 
 	candidatesResult := make([]uint8, 0, 9)
-	x, y := puzzle.GetMaxSlot()
+	x, y := puzzle.GetSlot()
 	puzzle.GetCandidates(&candidatesResult, x, y)
 	for _, c := range candidatesResult {
 		next := &Puzzle{}
