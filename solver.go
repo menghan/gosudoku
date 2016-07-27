@@ -230,26 +230,26 @@ type solver struct {
 
 	c chan *Puzzle
 
-	syncPool    *sync.Pool
-	concurrency int
-	results     []*Puzzle
-	GRstarted   chan struct{}
+	syncPool      *sync.Pool
+	concurrency   int
+	results       []*Puzzle
+	workerWaiting chan struct{}
 }
 
 func newSolver(concurrency int) *solver {
 	s := &solver{
-		c:           make(chan *Puzzle, 64),
-		cond:        sync.NewCond(&sync.Mutex{}),
-		syncPool:    newPool(),
-		concurrency: concurrency,
-		results:     make([]*Puzzle, 0, 64),
-		GRstarted:   make(chan struct{}, concurrency),
+		c:             make(chan *Puzzle, 64),
+		cond:          sync.NewCond(&sync.Mutex{}),
+		syncPool:      newPool(),
+		concurrency:   concurrency,
+		results:       make([]*Puzzle, 0, 64),
+		workerWaiting: make(chan struct{}, concurrency),
 	}
 	for i := 0; i < s.concurrency; i++ {
 		go s.workerSolve()
 	}
 	for i := 0; i < s.concurrency; i++ {
-		<-s.GRstarted
+		<-s.workerWaiting
 	}
 	return s
 }
@@ -259,11 +259,15 @@ func (s *solver) workerSolve() {
 	stack := newStack(64)
 	var current *Puzzle
 	var working bool = false
-	s.GRstarted <- struct{}{}
+	var waitingIsSent = false
 
 	for {
 		if !working {
 			s.cond.L.Lock()
+			if !waitingIsSent {
+				s.workerWaiting <- struct{}{}
+				waitingIsSent = true
+			}
 			s.cond.Wait()
 			s.cond.L.Unlock()
 			working = true
