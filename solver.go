@@ -4,10 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
-	"runtime"
-	pprof "runtime/pprof"
 	"strconv"
 	"sync"
 )
@@ -64,17 +61,16 @@ func (puzzle *Puzzle) ReadFrom(f io.Reader) error {
 	return nil
 }
 
-func (puzzle *Puzzle) LoadFromFile(filename string) error {
+func (puzzle *Puzzle) MustLoadFromFile(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	defer file.Close()
 	err = puzzle.ReadFrom(file)
 	if err != nil {
-		return err
+		panic(err)
 	}
-	return nil
 }
 
 func newPuzzle() interface{} {
@@ -333,45 +329,22 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 }
 
 func main() {
-	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
-	blockprofile := flag.String("blockprofile", "", "write block profile to file")
-	count := flag.Int("count", 100, "calculation count")
+	count := flag.Int("count", 1, "calculation count")
 	concurrency := flag.Int("concurrency", 1, "concurrency")
 	puzzleFile := flag.String("file", "", "target puzzle file")
 	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			panic(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-	if *blockprofile != "" {
-		runtime.SetBlockProfileRate(1)
-	}
 
 	var puzzle Puzzle
-	err := puzzle.LoadFromFile(*puzzleFile)
-	if err != nil {
-		panic(err)
-	}
+	puzzle.MustLoadFromFile(*puzzleFile)
 	puzzle.Print()
 
 	solver := newSolver(*concurrency)
 	for i := 0; i < *count; i++ {
 		solver.Solve(&puzzle)
 	}
+
 	fmt.Println("result")
 	for _, result := range solver.results {
 		result.Print()
-	}
-	if *blockprofile != "" {
-		file, err := os.Create(*blockprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.Lookup("block").WriteTo(file, 1)
-		file.Close()
 	}
 }
