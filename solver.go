@@ -64,6 +64,19 @@ func (puzzle *Puzzle) ReadFrom(f io.Reader) error {
 	return nil
 }
 
+func (puzzle *Puzzle) LoadFromFile(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = puzzle.ReadFrom(file)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func newPuzzle() interface{} {
 	return &Puzzle{}
 }
@@ -319,14 +332,9 @@ func main() {
 	}
 
 	var puzzle Puzzle
-	file, err := os.Open(*puzzleFile)
+	err := puzzle.LoadFromFile(*puzzleFile)
 	if err != nil {
-		log.Fatal(err)
-	}
-	err = puzzle.ReadFrom(file)
-	file.Close()
-	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	puzzle.Print()
 
@@ -339,7 +347,7 @@ func main() {
 		result.Print()
 	}
 	if *blockprofile != "" {
-		file, err = os.Create(*blockprofile)
+		file, err := os.Create(*blockprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
