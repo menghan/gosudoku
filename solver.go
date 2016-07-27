@@ -14,6 +14,8 @@ import (
 
 var candidateCountTable [512]uint8
 
+const SOFT_STACK_LIMIT int = 8
+
 func init() {
 	initCandidateCountTable()
 }
@@ -264,9 +266,17 @@ func (s *solver) workerSolve(initPuzzle *Puzzle) {
 				s.Lock()
 				s.results = append(s.results, next)
 				s.Unlock()
-			} else {
-				stack.Push(next)
+				continue
 			}
+
+			if len(stack.items) > SOFT_STACK_LIMIT {
+				select {
+				case s.c <- next:
+					continue
+				default:
+				}
+			}
+			stack.Push(next)
 		}
 		putPuzzle(s.syncPool, current)
 	}
