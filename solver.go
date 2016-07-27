@@ -241,7 +241,6 @@ type solver struct {
 	c chan *Puzzle
 
 	concurrency int
-	syncPool    *sync.Pool
 	results     []*Puzzle
 }
 
@@ -249,7 +248,6 @@ func newSolver(concurrency int) *solver {
 	s := &solver{
 		c:           make(chan *Puzzle, 64),
 		concurrency: concurrency,
-		syncPool:    newPool(),
 		results:     make([]*Puzzle, 0, 64),
 	}
 	return s
@@ -258,6 +256,7 @@ func newSolver(concurrency int) *solver {
 func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
+	syncPool := newPool()
 	var current *Puzzle
 
 	for {
@@ -274,10 +273,10 @@ func (s *solver) workerSolve() {
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
 		for _, c := range candidatesResult {
-			next := getPuzzle(s.syncPool)
+			next := getPuzzle(syncPool)
 			next.Reset(current)
 			if !next.Set(x, y, c) {
-				putPuzzle(s.syncPool, next)
+				putPuzzle(syncPool, next)
 				continue
 			}
 			if next.n_slot == 0 {
@@ -288,7 +287,7 @@ func (s *solver) workerSolve() {
 			}
 			stack.Push(next)
 		}
-		putPuzzle(s.syncPool, current)
+		putPuzzle(syncPool, current)
 	}
 }
 
@@ -300,25 +299,19 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 		return s.results
 	}
 
-	// use copy version of input argument
-	puzzleCopy := getPuzzle(s.syncPool)
-	puzzleCopy.Reset(puzzle)
-
 	candidatesResult := make([]uint8, 0, 9)
-	x, y := puzzleCopy.GetMaxSlot()
-	puzzleCopy.GetCandidates(&candidatesResult, x, y)
+	x, y := puzzle.GetMaxSlot()
+	puzzle.GetCandidates(&candidatesResult, x, y)
 	for _, c := range candidatesResult {
-		next := getPuzzle(s.syncPool)
-		next.Reset(puzzleCopy)
-		if !next.Set(x, y, c) {
-			putPuzzle(s.syncPool, next)
-			continue
+		next := &Puzzle{}
+		next.Reset(puzzle)
+		if next.Set(x, y, c) {
+			s.c <- next
 		}
-		s.c <- next
 	}
 	s.wg.Add(s.concurrency)
 	for i := 0; i < s.concurrency; i++ {
-		go s.workerSolve(nil)
+		go s.workerSolve()
 	}
 
 	s.wg.Wait()
