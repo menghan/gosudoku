@@ -248,9 +248,6 @@ func newSolver(concurrency int) *solver {
 	for i := 0; i < s.concurrency; i++ {
 		go s.workerSolve()
 	}
-	for i := 0; i < s.concurrency; i++ {
-		<-s.workerWaiting
-	}
 	return s
 }
 
@@ -259,15 +256,11 @@ func (s *solver) workerSolve() {
 	stack := newStack(64)
 	var current *Puzzle
 	var working bool = false
-	var waitingIsSent = false
 
 	for {
 		if !working {
 			s.cond.L.Lock()
-			if !waitingIsSent {
-				s.workerWaiting <- struct{}{}
-				waitingIsSent = true
-			}
+			s.workerWaiting <- struct{}{}
 			s.cond.Wait()
 			s.cond.L.Unlock()
 			working = true
@@ -325,6 +318,10 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 		s.c <- next
 	}
 	s.wg.Add(s.concurrency)
+
+	for i := 0; i < s.concurrency; i++ {
+		<-s.workerWaiting
+	}
 	s.cond.L.Lock()
 	s.cond.Broadcast()
 	s.cond.L.Unlock()
