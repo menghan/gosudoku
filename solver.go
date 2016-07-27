@@ -220,6 +220,7 @@ type solver struct {
 
 	c chan *Puzzle
 
+	syncPool    *sync.Pool
 	concurrency int
 	results     []*Puzzle
 }
@@ -227,6 +228,7 @@ type solver struct {
 func newSolver(concurrency int) *solver {
 	s := &solver{
 		c:           make(chan *Puzzle, 64),
+		syncPool:    newPool(),
 		concurrency: concurrency,
 		results:     make([]*Puzzle, 0, 64),
 	}
@@ -236,7 +238,6 @@ func newSolver(concurrency int) *solver {
 func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
-	syncPool := newPool()
 	var current *Puzzle
 
 	for {
@@ -253,10 +254,10 @@ func (s *solver) workerSolve() {
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
 		for _, c := range candidatesResult {
-			next := getPuzzle(syncPool)
+			next := getPuzzle(s.syncPool)
 			next.Reset(current)
 			if !next.Set(x, y, c) {
-				putPuzzle(syncPool, next)
+				putPuzzle(s.syncPool, next)
 				continue
 			}
 			if next.n_slot == 0 {
@@ -267,7 +268,7 @@ func (s *solver) workerSolve() {
 			}
 			stack.Push(next)
 		}
-		putPuzzle(syncPool, current)
+		putPuzzle(s.syncPool, current)
 	}
 }
 
