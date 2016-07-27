@@ -208,9 +208,6 @@ func (s *stack) Push(item *Puzzle) {
 
 func (s *stack) Pop() *Puzzle {
 	l := len(s.items)
-	if l <= 0 {
-		panic("stackunderflow!")
-	}
 	v := s.items[l-1]
 	s.items[l-1] = nil
 	s.items = s.items[:l-1]
