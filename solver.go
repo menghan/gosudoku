@@ -123,6 +123,26 @@ func (puzzle *Puzzle) GetSlot() (rx, ry int) {
 	return
 }
 
+func (puzzle *Puzzle) GetMaxSlot() (rx, ry int) {
+	max_cdd := uint8(0)
+	for x := 0; x < 9; x++ {
+		for y := 0; y < 9; y++ {
+			if puzzle.grid[x][y] != 0 {
+				continue
+			}
+			cdd := getCandidateCount(puzzle.candidates[x][y])
+			if cdd > max_cdd {
+				rx, ry = x, y
+				if cdd == 9 {
+					return
+				}
+				max_cdd = cdd
+			}
+		}
+	}
+	return
+}
+
 func (puzzle *Puzzle) GetCandidates(result *[]uint8, x, y int) {
 	*result = (*result)[:0]
 	bit := puzzle.candidates[x][y]
@@ -239,7 +259,9 @@ func newSolver(concurrency int) *solver {
 func (s *solver) workerSolve(initPuzzle *Puzzle) {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
-	stack.Push(initPuzzle)
+	if initPuzzle != nil {
+		stack.Push(initPuzzle)
+	}
 
 	var current *Puzzle
 	for {
@@ -295,9 +317,10 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	puzzleCopy.Reset(puzzle)
 
 	candidatesResult := make([]uint8, 0, 9)
-	x, y := puzzleCopy.GetSlot()
+	x, y := puzzleCopy.GetMaxSlot()
 	puzzleCopy.GetCandidates(&candidatesResult, x, y)
-	s.wg.Add(len(candidatesResult))
+	s.wg.Add(s.concurrency)
+	workingG := 0
 	for _, c := range candidatesResult {
 		next := getPuzzle(s.syncPool)
 		next.Reset(puzzleCopy)
@@ -305,7 +328,16 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 			putPuzzle(s.syncPool, next)
 			continue
 		}
-		go s.workerSolve(next)
+		if workingG > s.concurrency {
+			s.c <- next
+		} else {
+			go s.workerSolve(next)
+			workingG++
+		}
+	}
+	for workingG < s.concurrency {
+		go s.workerSolve(nil)
+		workingG++
 	}
 
 	s.wg.Wait()
