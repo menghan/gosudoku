@@ -14,8 +14,6 @@ import (
 
 var candidateCountTable [512]uint8
 
-const SOFT_STACK_LIMIT int = 8
-
 func init() {
 	initCandidateCountTable()
 }
@@ -257,14 +255,11 @@ func newSolver(concurrency int) *solver {
 	return s
 }
 
-func (s *solver) workerSolve(initPuzzle *Puzzle) {
+func (s *solver) workerSolve() {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
-	if initPuzzle != nil {
-		stack.Push(initPuzzle)
-	}
-
 	var current *Puzzle
+
 	for {
 		if len(stack.items) != 0 {
 			current = stack.Pop()
@@ -291,14 +286,6 @@ func (s *solver) workerSolve(initPuzzle *Puzzle) {
 				s.Unlock()
 				continue
 			}
-
-			if len(stack.items) > SOFT_STACK_LIMIT {
-				select {
-				case s.c <- next:
-					continue
-				default:
-				}
-			}
 			stack.Push(next)
 		}
 		putPuzzle(s.syncPool, current)
@@ -320,8 +307,6 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 	candidatesResult := make([]uint8, 0, 9)
 	x, y := puzzleCopy.GetMaxSlot()
 	puzzleCopy.GetCandidates(&candidatesResult, x, y)
-	s.wg.Add(s.concurrency)
-	workingG := 0
 	for _, c := range candidatesResult {
 		next := getPuzzle(s.syncPool)
 		next.Reset(puzzleCopy)
@@ -329,16 +314,11 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 			putPuzzle(s.syncPool, next)
 			continue
 		}
-		if workingG > s.concurrency {
-			s.c <- next
-		} else {
-			go s.workerSolve(next)
-			workingG++
-		}
+		s.c <- next
 	}
-	for workingG < s.concurrency {
+	s.wg.Add(s.concurrency)
+	for i := 0; i < s.concurrency; i++ {
 		go s.workerSolve(nil)
-		workingG++
 	}
 
 	s.wg.Wait()
