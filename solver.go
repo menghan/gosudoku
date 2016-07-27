@@ -249,9 +249,10 @@ type solver struct {
 
 func newSolver(concurrency int) *solver {
 	s := &solver{
-		c:        make(chan *Puzzle, 64),
-		syncPool: newPool(),
-		results:  make([]*Puzzle, 0, 64),
+		c:           make(chan *Puzzle, 64),
+		concurrency: concurrency,
+		syncPool:    newPool(),
+		results:     make([]*Puzzle, 0, 64),
 	}
 	return s
 }
