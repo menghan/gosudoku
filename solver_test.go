@@ -8,9 +8,7 @@ import (
 
 func benchmarkSolver(b *testing.B, puzzleFilename string, concurrency int) {
 	var puzzle Puzzle
-	if err := puzzle.LoadFromFile(puzzleFilename); err != nil {
-		b.Fatal(err)
-	}
+	puzzle.MustLoadFromFile(puzzleFilename)
 	solver := newSolver(concurrency)
 	for n := 0; n < b.N; n++ {
 		solver.Solve(&puzzle)
