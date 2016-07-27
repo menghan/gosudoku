@@ -278,6 +278,7 @@ func (s *solver) workerSolve() {
 		}
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
+		var pushed int
 		for _, c := range candidatesResult {
 			next := getPuzzle(s.syncPool)
 			next.Reset(current)
@@ -291,7 +292,15 @@ func (s *solver) workerSolve() {
 				s.Unlock()
 				continue
 			}
+			if pushed >= 1 && next.n_slot >= 27 {
+				select {
+				case s.c <- next:
+					continue
+				default:
+				}
+			}
 			stack.Push(next)
+			pushed++
 		}
 		putPuzzle(s.syncPool, current)
 	}
@@ -305,19 +314,11 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 		return s.results
 	}
 
-	candidatesResult := make([]uint8, 0, 9)
-	x, y := puzzle.GetSlot()
-	puzzle.GetCandidates(&candidatesResult, x, y)
-	for _, c := range candidatesResult {
-		next := getPuzzle(s.syncPool)
-		next.Reset(puzzle)
-		if !next.Set(x, y, c) {
-			putPuzzle(s.syncPool, next)
-			continue
-		}
-		s.c <- next
-	}
 	s.wg.Add(s.concurrency)
+
+	p := getPuzzle(s.syncPool)
+	p.Reset(puzzle)
+	s.c <- p
 
 	for i := 0; i < s.concurrency; i++ {
 		<-s.workerWaiting
