@@ -279,7 +279,7 @@ func (s *solver) workerSolve() {
 		}
 		x, y := current.GetSlot()
 		current.GetCandidates(&candidatesResult, x, y)
-		var pushed int
+		var shared int
 		for _, c := range candidatesResult {
 			next := getPuzzle(s.syncPool)
 			next.Reset(current)
@@ -293,15 +293,15 @@ func (s *solver) workerSolve() {
 				s.Unlock()
 				continue
 			}
-			if pushed >= 1 && next.n_slot >= 27 {
+			if shared == 0 && next.n_slot >= 9 {
 				select {
 				case s.c <- next:
+					shared++
 					continue
 				default:
 				}
 			}
 			stack.Push(next)
-			pushed++
 		}
 		putPuzzle(s.syncPool, current)
 	}
