@@ -335,19 +335,25 @@ func main() {
 	count := flag.Int("count", 1, "calculation count")
 	concurrency := flag.Int("concurrency", 1, "concurrency")
 	puzzleFile := flag.String("file", "", "target puzzle file")
+	print := flag.Bool("print", false, "print target and results")
 	flag.Parse()
 
 	var puzzle Puzzle
 	puzzle.MustLoadFromFile(*puzzleFile)
-	puzzle.Print()
+	if *print {
+		puzzle.Print()
+	}
 
 	solver := newSolver(*concurrency)
 	for i := 0; i < *count; i++ {
 		solver.Solve(&puzzle)
 	}
 
-	fmt.Println("result")
-	for _, result := range solver.results {
-		result.Print()
+	if *print {
+		fmt.Printf("result")
+		for _, result := range solver.results {
+			fmt.Println("")
+			result.Print()
+		}
 	}
 }
