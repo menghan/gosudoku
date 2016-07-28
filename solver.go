@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 var candidateCountTable [512]uint8
@@ -270,7 +271,7 @@ func (s *solver) workerSolve() {
 		} else {
 			select {
 			case current = <-s.c:
-			default:
+			case <-time.NewTimer(time.Microsecond * 100).C:
 				s.wg.Done()
 				working = false
 				continue
