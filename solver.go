@@ -257,6 +257,7 @@ func (s *solver) workerSolve() {
 	stack := newStack(64)
 	var current *Puzzle
 	var working bool = false
+	var timer = time.NewTimer(0)
 
 	for {
 		if !working {
@@ -269,9 +270,10 @@ func (s *solver) workerSolve() {
 		if len(stack.items) != 0 {
 			current = stack.Pop()
 		} else {
+			timer.Reset(time.Microsecond * 100)
 			select {
 			case current = <-s.c:
-			case <-time.NewTimer(time.Microsecond * 100).C:
+			case <-timer.C:
 				if len(s.c) == 0 {
 					s.wg.Done()
 					working = false
