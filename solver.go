@@ -272,8 +272,10 @@ func (s *solver) workerSolve() {
 			select {
 			case current = <-s.c:
 			case <-time.NewTimer(time.Microsecond * 100).C:
-				s.wg.Done()
-				working = false
+				if len(s.c) == 0 {
+					s.wg.Done()
+					working = false
+				}
 				continue
 			}
 		}
