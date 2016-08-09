@@ -285,10 +285,10 @@ func (s *solver) workerSolve() {
 		current.GetCandidates(&candidatesResult, x, y)
 		// var shared int
 		for _, c := range candidatesResult {
-			next := getPuzzle(s.syncPool)
+			next := &Puzzle{}
 			next.Reset(current)
 			if !next.Set(x, y, c) {
-				putPuzzle(s.syncPool, next)
+				// putPuzzle(s.syncPool, next)
 				continue
 			}
 			if next.n_slot == 0 {
@@ -307,7 +307,7 @@ func (s *solver) workerSolve() {
 			// }
 			stack.Push(next)
 		}
-		putPuzzle(s.syncPool, current)
+		// putPuzzle(s.syncPool, current)
 	}
 }
 
@@ -321,7 +321,8 @@ func (s *solver) Solve(puzzle *Puzzle) []*Puzzle {
 
 	s.wg.Add(s.concurrency)
 
-	p := getPuzzle(s.syncPool)
+	// p := getPuzzle(s.syncPool)
+	p := &Puzzle{}
 	p.Reset(puzzle)
 	s.c <- p
 
