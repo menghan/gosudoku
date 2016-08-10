@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -235,6 +236,7 @@ type solver struct {
 	concurrency   int
 	results       []*Puzzle
 	workerWaiting chan struct{}
+	blockCount    int32
 }
 
 func newSolver(concurrency int) *solver {
@@ -270,6 +272,7 @@ func (s *solver) workerSolve() {
 		if len(stack.items) != 0 {
 			current = stack.Pop()
 		} else {
+			atomic.AddInt32(&s.blockCount, 1)
 			timer.Reset(time.Microsecond * 100)
 			select {
 			case current = <-s.c:
@@ -354,6 +357,7 @@ func main() {
 		solver.Solve(&puzzle)
 	}
 
+	fmt.Printf("block count = %d\n", solver.blockCount)
 	if *print {
 		fmt.Printf("result")
 		for _, result := range solver.results {
