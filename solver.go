@@ -249,12 +249,12 @@ func newSolver(concurrency int) *solver {
 		workerWaiting: make(chan struct{}, concurrency),
 	}
 	for i := 0; i < s.concurrency; i++ {
-		go s.workerSolve()
+		go s.workerSolve(i)
 	}
 	return s
 }
 
-func (s *solver) workerSolve() {
+func (s *solver) workerSolve(wid int) {
 	candidatesResult := make([]uint8, 0, 9)
 	stack := newStack(64)
 	var current *Puzzle
@@ -273,13 +273,17 @@ func (s *solver) workerSolve() {
 			current = stack.Pop()
 		} else {
 			atomic.AddInt32(&s.blockCount, 1)
+			fmt.Printf("[%d] block!\n", wid)
 			timer.Reset(time.Microsecond * 100)
 			select {
 			case current = <-s.c:
+				fmt.Printf("[%d] get puzzle from channel\n", wid)
 			case <-timer.C:
+				fmt.Printf("[%d] puzzle channel timeout!\n", wid)
 				if len(s.c) == 0 {
 					s.wg.Done()
 					working = false
+					fmt.Printf("[%d] timeout indicate done!\n", wid)
 				}
 				continue
 			}
@@ -354,6 +358,7 @@ func main() {
 
 	solver := newSolver(*concurrency)
 	for i := 0; i < *count; i++ {
+		fmt.Println("==========")
 		solver.Solve(&puzzle)
 	}
 
