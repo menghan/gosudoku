@@ -12,7 +12,7 @@ class Sudoku(object):
             [set(range(1, 10)) for i in xrange(9)]
             for j in xrange(9)
         ]
-        self.left = 0
+        self.left = sum([int(bool(v)) for v in sum(self.array, [])], 0)
         self.recalc()
 
     def recalc(self):
@@ -23,7 +23,6 @@ class Sudoku(object):
     def recalc_pos(self, i, j):
         v = self.array[i][j]
         if v == 0:
-            self.left += 1
             return
         for ii in xrange(9):
             self.avail[ii][j].discard(v)
@@ -37,8 +36,7 @@ class Sudoku(object):
     def easy_position(self):
         for i, ia in enumerate(self.avail):
             for j, ja in enumerate(ia):
-                if len(ja) == 1:
-                    assert self.array[i][j] == 0  # FIXME
+                if self.array[i][j] == 0 and len(ja) == 1:
                     return i, j, list(ja)[0]
 
     def fill(self, x, y, v):
@@ -61,7 +59,7 @@ def read_sudoku(body):
 
 
 def main():
-    s = read_sudoku(sys.stdin.read())
+    s = read_sudoku(open(sys.argv[1]).read())
     print s.array
     while s.left:
         pos = s.easy_position()
