@@ -17,6 +17,8 @@ class Sudoku(object):
             for j, jv in enumerate(il):
                 if jv == 0:
                     self.left += 1
+                else:
+                    self.avail[i][j] = set()
         self.recalc()
 
     def recalc(self):
@@ -52,8 +54,6 @@ class Sudoku(object):
             avs.sort()
             for i, av in enumerate(avs):
                 if i > 0 and avs[i-1] == avs[i]:
-                    if len(av) == 2:
-                        return av
                     if len(av) == 3:
                         try:
                             if avs[i-2] == avs[i]:
@@ -62,6 +62,8 @@ class Sudoku(object):
                                 return av
                         except IndexError:
                             pass
+                    if len(av) == 2:
+                        return av
 
         # line
         for i, ia in enumerate(self.avail):
@@ -140,6 +142,7 @@ class Sudoku(object):
 
     def fill(self, x, y, v):
         self.array[x][y] = v
+        self.avail[x][y] = set()
         self.recalc_pos(x, y)
         self.left -= 1
 
