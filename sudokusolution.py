@@ -140,6 +140,9 @@ class Sudoku(object):
                     if len(can_fill_needto) == 1:
                         return can_fill_needto[0][0], can_fill_needto[0][1], needto, '框'
 
+    def exclude_possibility(self):
+        pass
+
     def fill(self, x, y, v):
         self.array[x][y] = v
         self.avail[x][y] = set()
@@ -182,6 +185,9 @@ def main():
     sys.stdout.flush()
     raw_input('Press Enter to Continue...\n')
     while s.left:
+
+        s.exclude_possibility()
+
         pos = s.need_to_be_solution()
         if pos is not None:
             x, y, v, hint = pos
