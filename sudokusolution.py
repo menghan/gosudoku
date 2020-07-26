@@ -151,6 +151,7 @@ class Sudoku(object):
         for i in xrange(9):
             print >> out, '%d ' % (i + 1),
         print >> out
+        print >> out, '    -------------------------'
         for i, il in enumerate(self.array):
             print >> out, '%d: ' % (i + 1),
             for j, jv in enumerate(il):
@@ -206,7 +207,7 @@ def main():
         pos = s.pair_solution()
         if pos is not None:
             x, y, v, pairs, pairs_value = pos
-            print '第 %d 行 第 %d 列经 成对法:[%s]填%s 可以填 %d' % (x + 1, y + 1, ','.join(['%s行%s列' % (i+1,j+1) for (i,j) in pairs]), ','.join([str(vv) for vv in pairs_value]), v)
+            print '第 %d 行 第 %d 列经 成对成组法:[%s]填%s 可以填 %d' % (x + 1, y + 1, ','.join(['%s行%s列' % (i+1,j+1) for (i,j) in pairs]), ','.join([str(vv) for vv in pairs_value]), v)
             sys.stdout.flush()
             s.fill(x, y, v)
             s.printto(sys.stdout)
